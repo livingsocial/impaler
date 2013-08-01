@@ -14,7 +14,7 @@ module Impaler
   #    finishes
   # @return [Connection] the open connection, or, if a block is
   #    passed, the return value of the block
-  def self.connect(impala_servers=nil, hivethrift_servers=nil, logger=Logger.new(STDOUT))
+  def self.connect(impala_servers, hivethrift_servers, logger=Logger.new(STDOUT))
     manager = Manager.new(impala_servers, hivethrift_servers, logger=logger)
 
     if block_given?

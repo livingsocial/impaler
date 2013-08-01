@@ -16,6 +16,8 @@ has_tables=!TEST_TABLE.nil? && !TEST_TABLE_COLUMN.nil?
 
 run_tests=has_tables && has_servers
 
+SKIP_SLOW=!ENV['SKIP_SLOW'].nil?
+
 def connect
   Impaler.connect(IMPALA_SERVERS, HIVETHRIFT_SERVERS)
 end
@@ -25,16 +27,21 @@ describe Impaler, :if => run_tests do
     puts "Skipping connected tests for Impaler, set the environment variables IMPALA_SERVER, HIVETHRIFT_SERVER, TEST_TABLE, and TEST_TABLE_COLUMN to enable these"
     puts "IMPALA_SERVER and HIVETHRIFT_SERVER are in the format 'server:port'"
     puts "TEST_TABLE should be a fairly small table for quick tests and TEST_TABLE_COLUMN will be used for some simple test queries where Impala is known to not support the query"
+    puts "Optionally set the environment varialbe SKIP_SLOW=true to skip the hive invocations which are a bit slow"
   }
 
 
   describe "connect" do
     it "connects without error" do
       expect { Impaler::connect(IMPALA_SERVERS, HIVETHRIFT_SERVERS) }.not_to raise_error
-      expect { Impaler::connect(impala_servers=IMPALA_SERVERS, hivethrift_servers=HIVETHRIFT_SERVERS) }.not_to raise_error
-      # These aren't supported yet
-      #expect { Impaler::connect(impala_servers=IMPALA_SERVERS) }.not_to raise_error
-      #expect { Impaler::connect(hivethrift_servers=HIVETHRIFT_SERVERS) }.not_to raise_error
+      expect { Impaler::connect(IMPALA_SERVERS, nil) }.not_to raise_error
+      expect { Impaler::connect(nil, HIVETHRIFT_SERVERS) }.not_to raise_error
+    end
+
+    it "connects with single value server entries without error" do
+      expect { Impaler::connect(IMPALA_SERVER, HIVETHRIFT_SERVER) }.not_to raise_error
+      expect { Impaler::connect(IMPALA_SERVER, nil) }.not_to raise_error
+      expect { Impaler::connect(nil, HIVETHRIFT_SERVER) }.not_to raise_error
     end
   end
 
@@ -43,9 +50,35 @@ describe Impaler, :if => run_tests do
       c = connect
       count = (c.query "select count(*) c from #{TEST_TABLE}").first[:c]
       (c.query "select count(*) c from #{TEST_TABLE}").first[:c].should eq(count)
-      (c.query "select count(*) c from #{TEST_TABLE}", Impaler::HIVE_ONLY).first[:c].should eq(count)
       (c.query "select count(*) c from #{TEST_TABLE}", Impaler::IMPALA_ONLY).first[:c].should eq(count)
       (c.query "select count(*) c from #{TEST_TABLE}", Impaler::IMPALA_THEN_HIVE).first[:c].should eq(count)
+      if !SKIP_SLOW 
+        (c.query "select count(*) c from #{TEST_TABLE}", Impaler::HIVE_ONLY).first[:c].should eq(count)
+      end
     end
+
+    it "fails with garbage queries" do
+      c = connect
+      expect { c.query "select sdffdsa from lkjasdfjkhadf", Impaler::IMPALA_ONLY }.to raise_error(Impala::Protocol::Beeswax::BeeswaxException)
+      expect { c.query "select sdffdsa from lkjasdfjkhadf", Impaler::HIVE_ONLY }.to raise_error(HiveServerException)
+      expect { c.query "select sdffdsa from lkjasdfjkhadf" }.to raise_error(HiveServerException)
+    end
+
   end
+
+  describe "unsupported impala queries", :unless => SKIP_SLOW do
+
+    it "fails when run with impala only" do
+      c = connect
+      expect { c.query "select collect_set(#{TEST_TABLE_COLUMN}) from #{TEST_TABLE}", Impaler::IMPALA_ONLY }.to raise_error(Impala::Protocol::Beeswax::BeeswaxException)
+    end
+
+    it "falls back to hive if impala generates an error" do
+      c = connect
+      expect { c.query "select collect_set(#{TEST_TABLE_COLUMN}) from #{TEST_TABLE}" }.not_to raise_error
+    end
+
+  end
+
+
 end

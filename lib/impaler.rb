@@ -6,10 +6,10 @@ module Impaler
 
   class ConnectionError < StandardError; end
 
-  # Connect to an Impala server. If a block is given, it will close the
-  # connection after yielding the connection to the block.
-  # @param [String] host the hostname or IP address of the Impala server
-  # @param [int] port the port that the Impala server is listening on
+  # Connect to the servers and optionally execute a block of code
+  # with the servers.
+  # @param [String] host:port for the impala server or an array of host:port to pick from many
+  # @param [String] host:port for the hive thirft server (v1) or an array of host:port to pick from many
   # @yieldparam [Connection] conn the open connection. Will be closed once the block
   #    finishes
   # @return [Connection] the open connection, or, if a block is

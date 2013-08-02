@@ -10,7 +10,7 @@ Gem::Specification.new do |spec|
   spec.email         = ["john.meagher@gmail.com","trent.albright@gmail.com"]
   spec.description   = %q{Wrapper around Impala and Hive gems}
   spec.summary       = %q{Run in Impala when possible and fall back to Hive when needed}
-  spec.homepage      = ""
+  spec.homepage      = "https://github.com/livingsocial/impaler"
   spec.license       = "MIT"
 
   spec.files         = `git ls-files`.split($/)

@@ -21,7 +21,7 @@ Or install it yourself as:
 Basic Usage
 
     require 'impaler'
-    c = Impaler.connect(['hivethrift_server:10000'], ['impala_server:21000'])
+    c = Impaler.connect(['impala_server:21000'], ['hivethrift_server:10000'])
     c.query("select count(*) from my_table") # This will run in Impala
     c.query("select name, collect_set(foo) from my_table") # This will run in Hive (after a quick error on Impala)
     c.query("select count(*) from my_table", Impaler::HIVE_ONLY) # This is forced to run on Hive

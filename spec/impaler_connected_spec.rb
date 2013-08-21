@@ -80,5 +80,22 @@ describe Impaler, :if => run_tests do
 
   end
 
+  describe "handles down servers" do
+    it "handles having no impala server" do
+      c = Impaler.connect(nil, HIVETHRIFT_SERVERS)
+      expect { c.query "select count(*) c from #{TEST_TABLE}", Impaler::IMPALA_ONLY }.to raise_error(Impaler::QueryError)
+      if !SKIP_SLOW 
+        expect { c.query "select count(*) c from #{TEST_TABLE}", Impaler::HIVE_ONLY }.not_to raise_error
+        expect { c.query "select count(*) c from #{TEST_TABLE}", Impaler::IMPALA_THEN_HIVE }.not_to raise_error
+      end
+    end
+
+    it "handles having no hive server" do
+      c = Impaler.connect(IMPALA_SERVER, nil)
+      expect { c.query "select count(*) c from #{TEST_TABLE}", Impaler::HIVE_ONLY }.to raise_error(Impaler::QueryError)
+      expect { c.query "select count(*) c from #{TEST_TABLE}", Impaler::IMPALA_ONLY }.not_to raise_error
+      expect { c.query "select count(*) c from #{TEST_TABLE}", Impaler::IMPALA_THEN_HIVE }.not_to raise_error
+    end
+  end
 
 end

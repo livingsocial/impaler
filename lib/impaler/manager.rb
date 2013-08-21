@@ -9,8 +9,8 @@ module Impaler
 
   class Manager
 
-    def initialize(impala_servers, hivethrift_servers, logger=Logger.new(STDOUT))
-      if impala_servers.nil? and hivethrift_servers.nil? then
+    def initialize(impala_servers, hivethrift_servers, logger=Impaler::DEFAULT_LOGGER)
+      if impala_servers.nil? and hivethrift_servers.nil? 
         raise Impaler::ConnectionError.new("No impaler or hive servers were specified, at least one is required")
       end
 
@@ -42,11 +42,13 @@ module Impaler
     end
 
     def open
+      connected=false
       if !@impala_host.nil? && !@impala_port.nil?
         @logger.debug "Impala connection #{@impala_host}:#{@impala_port}"
         @impala_connection = Impala.connect(@impala_host, @impala_port)
         @impala_connection.open
         @impala_connection.refresh
+        connected=true
       else
         @impala_connection = nil
       end
@@ -55,8 +57,13 @@ module Impaler
         @logger.debug "Hivethrift connection #{@hivethrift_host}:#{@hivethrift_port}"
         @hivethrift_connection = RBHive::Connection.new(@hivethrift_host, @hivethrift_port)
         @hivethrift_connection.open
+        connected=true
       else
         @hivethrift_connection = nil
+      end
+
+      if !connected
+        raise Impaler::ConnectionError.new("All connections failed")
       end
     end
 
@@ -65,7 +72,7 @@ module Impaler
       ret = nil
       error = nil
       success = false
-      unless query_mode == Impaler::HIVE_ONLY or @impala_connection.nil? then
+      unless query_mode == Impaler::HIVE_ONLY or @impala_connection.nil? 
         begin
           @logger.debug "Trying query in impala"
           ret = @impala_connection.query(sql)
@@ -77,7 +84,7 @@ module Impaler
         end
       end
 
-      unless @hivethrift_connection.nil? || success || query_mode == Impaler::IMPALA_ONLY then
+      unless @hivethrift_connection.nil? || success || query_mode == Impaler::IMPALA_ONLY 
         begin
           @logger.debug "Trying query in hive"
           ret = @hivethrift_connection.fetch(sql)
@@ -89,8 +96,10 @@ module Impaler
         end
       end
 
-      if !success && !error.nil? then
+      if !success && !error.nil? 
         raise error
+      elsif !success 
+        raise Impaler::QueryError.new("Query did not run due to no connections being available")
       end
       return ret
     end

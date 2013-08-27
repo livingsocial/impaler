@@ -68,6 +68,9 @@ module Impaler
     end
 
 
+    # ###########################################################################
+    # General use methods
+
     def query(sql, query_mode = Impaler::IMPALA_THEN_HIVE)
       ret = nil
       error = nil
@@ -104,6 +107,35 @@ module Impaler
       return ret
     end
 
+
+    # ###########################################################################
+    # Helper query methods
+    
+    def row_count(tablename)
+        query("SELECT COUNT(1) c FROM #{tablename}").first[:c]
+    end
+
+
+
+
+
+    # ###########################################################################
+    # Metadata methods
+
+    def columns(tablename)
+      desc = {}
+      (query "describe #{tablename}").each { |col|
+        cname=col[:name].nil? ? col[:col_name] : col[:name]
+        ctype=col[:type].nil? ? col[:data_type] : col[:type]
+        desc[cname.intern] = ctype.intern
+      }
+      desc
+    end
+
+
+
+
   end
+
 
 end

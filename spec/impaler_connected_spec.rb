@@ -22,6 +22,15 @@ def connect
   Impaler.connect(IMPALA_SERVERS, HIVETHRIFT_SERVERS)
 end
 
+def connect_impala
+  Impaler.connect(IMPALA_SERVERS, nil)
+end
+
+def connect_hivethrift
+  Impaler.connect(nil, HIVETHRIFT_SERVERS)
+end
+
+
 describe Impaler, :if => run_tests do 
   it("Connected skip", :if=>!run_tests) {
     puts "Skipping connected tests for Impaler, set the environment variables IMPALA_SERVER, HIVETHRIFT_SERVER, TEST_TABLE, and TEST_TABLE_COLUMN to enable these"
@@ -82,7 +91,7 @@ describe Impaler, :if => run_tests do
 
   describe "handles down servers" do
     it "handles having no impala server" do
-      c = Impaler.connect(nil, HIVETHRIFT_SERVERS)
+      c = connect_hivethrift
       expect { c.query "select count(*) c from #{TEST_TABLE}", Impaler::IMPALA_ONLY }.to raise_error(Impaler::QueryError)
       if !SKIP_SLOW 
         expect { c.query "select count(*) c from #{TEST_TABLE}", Impaler::HIVE_ONLY }.not_to raise_error
@@ -91,10 +100,55 @@ describe Impaler, :if => run_tests do
     end
 
     it "handles having no hive server" do
-      c = Impaler.connect(IMPALA_SERVER, nil)
+      c = connect_impala
       expect { c.query "select count(*) c from #{TEST_TABLE}", Impaler::HIVE_ONLY }.to raise_error(Impaler::QueryError)
       expect { c.query "select count(*) c from #{TEST_TABLE}", Impaler::IMPALA_ONLY }.not_to raise_error
       expect { c.query "select count(*) c from #{TEST_TABLE}", Impaler::IMPALA_THEN_HIVE }.not_to raise_error
+    end
+  end
+
+  describe "query consistency", :unless => SKIP_SLOW do
+
+    it "queries return the same regardless of connection type" do
+      q="select * from #{TEST_TABLE} limit 5"
+      c = connect
+      base = c.query(q)
+
+      t=connect_impala.query(q)
+      expect(t).to eq(base)
+
+      t=connect_hivethrift.query(q)
+      expect(t).to eq(base)
+    end
+  end
+
+
+  describe "columns method works" do
+
+    it "columns returns the same regardless of connection type" do
+      c = connect
+      base = c.columns("#{TEST_TABLE}")
+
+      t=connect_impala.columns("#{TEST_TABLE}")
+      expect(t).to eq(base)
+
+      t=connect_hivethrift.columns("#{TEST_TABLE}")
+      expect(t).to eq(base)
+    end
+  end
+
+
+  describe "row_count method works", :unless => SKIP_SLOW do
+
+    it "row_count returns the same regardless of connection type" do
+      c = connect
+      base = c.row_count("#{TEST_TABLE}")
+
+      t=connect_impala.row_count("#{TEST_TABLE}")
+      expect(t).to eq(base)
+
+      t=connect_hivethrift.row_count("#{TEST_TABLE}")
+      expect(t).to eq(base)
     end
   end
 

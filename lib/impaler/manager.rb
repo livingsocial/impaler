@@ -67,6 +67,18 @@ module Impaler
       end
     end
 
+    def close
+      if !@impala_connection.nil?
+        @impala_connection.close
+        @impala_connection = nil
+      end
+
+      if !@hivethrift_connection.nil?
+        @hivethrift_connection.close
+        @hivethrift_connection = nil
+      end
+    end
+
 
     # ###########################################################################
     # General use methods
@@ -132,8 +144,12 @@ module Impaler
       desc
     end
 
-
-
+    def tables(pattern=nil)
+      q = "SHOW TABLES" + ((pattern.nil?) ? "" : " '#{pattern}'")
+      query(q).collect { |table|
+        table[:name].nil? ? table[:tab_name] : table[:name]
+      }
+    end
 
   end
 

@@ -54,6 +54,22 @@ describe Impaler, :if => run_tests do
     end
   end
 
+  describe "close" do
+    it "opens and closes without errors" do
+      expect { connect.close }.not_to raise_error
+      expect { connect_impala.close }.not_to raise_error
+      expect { connect_hivethrift.close }.not_to raise_error
+    end
+
+    it "fails after a close" do
+      expect { 
+        c=connect
+        c.close
+        c.query "select count(*) from #{TEST_TABLE}"
+      }.to raise_error(Impaler::QueryError)
+    end
+  end
+
   describe "simple query" do
     it "supports a count(*) query" do
       c = connect
@@ -122,32 +138,72 @@ describe Impaler, :if => run_tests do
     end
   end
 
-
   describe "columns method works" do
 
     it "columns returns the same regardless of connection type" do
       c = connect
-      base = c.columns("#{TEST_TABLE}")
+      base = c.columns(TEST_TABLE)
 
-      t=connect_impala.columns("#{TEST_TABLE}")
+      t=connect_impala.columns(TEST_TABLE)
       expect(t).to eq(base)
 
-      t=connect_hivethrift.columns("#{TEST_TABLE}")
+      t=connect_hivethrift.columns(TEST_TABLE)
       expect(t).to eq(base)
     end
   end
-
 
   describe "row_count method works", :unless => SKIP_SLOW do
 
     it "row_count returns the same regardless of connection type" do
       c = connect
-      base = c.row_count("#{TEST_TABLE}")
+      base = c.row_count(TEST_TABLE)
 
-      t=connect_impala.row_count("#{TEST_TABLE}")
+      t=connect_impala.row_count(TEST_TABLE)
       expect(t).to eq(base)
 
-      t=connect_hivethrift.row_count("#{TEST_TABLE}")
+      t=connect_hivethrift.row_count(TEST_TABLE)
+      expect(t).to eq(base)
+    end
+  end
+
+
+  describe "tables method works" do
+
+    it "appears to work correctly in a basic mode" do
+      t=connect.tables
+      expect(t).to include(TEST_TABLE)
+    end
+
+    it "works with patterns" do
+      t=connect.tables("#{TEST_TABLE[0,2]}*")
+      expect(t).to include(TEST_TABLE)
+
+      t=connect_impala.tables("#{TEST_TABLE[0,2]}*")
+      expect(t).to include(TEST_TABLE)
+
+      t=connect_hivethrift.tables("#{TEST_TABLE[0,2]}*")
+      expect(t).to include(TEST_TABLE)
+    end
+
+    it "tables returns the same regardless of connection type" do
+      c = connect
+      base = c.tables(TEST_TABLE)
+
+      t=connect_impala.tables(TEST_TABLE)
+      expect(t).to eq(base)
+
+      t=connect_hivethrift.tables(TEST_TABLE)
+      expect(t).to eq(base)
+    end
+
+    it "tables returns the same with no args regardless of connection type" do
+      c = connect
+      base = c.tables
+
+      t=connect_impala.tables
+      expect(t).to eq(base)
+
+      t=connect_hivethrift.tables
       expect(t).to eq(base)
     end
   end

@@ -137,8 +137,8 @@ module Impaler
     def columns(tablename)
       desc = {}
       (query "describe #{tablename}").each { |col|
-        cname=col[:name].nil? ? col[:col_name] : col[:name]
-        ctype=col[:type].nil? ? col[:data_type] : col[:type]
+        cname=col[:name] || col[:col_name]
+        ctype=col[:type] || col[:data_type]
         desc[cname.intern] = ctype.intern
       }
       desc
@@ -147,7 +147,7 @@ module Impaler
     def tables(pattern=nil)
       q = "SHOW TABLES" + ((pattern.nil?) ? "" : " '#{pattern}'")
       query(q).collect { |table|
-        table[:name].nil? ? table[:tab_name] : table[:name]
+        table[:name] || table[:tab_name]
       }
     end
 

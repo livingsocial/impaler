@@ -119,6 +119,13 @@ module Impaler
       return ret
     end
 
+    def set(key, value)
+      # Only run on hive since that's the only one that supports set for now
+      if !@hivethrift_connection.nil?
+        @hivethrift_connection.set(key, value)
+      end
+    end
+
 
     # ###########################################################################
     # Helper query methods

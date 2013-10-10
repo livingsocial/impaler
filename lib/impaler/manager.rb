@@ -8,6 +8,7 @@ module Impaler
   IMPALA_ONLY = 3
 
   class Manager
+    
 
     def initialize(impala_servers, hivethrift_servers, logger=Impaler::DEFAULT_LOGGER)
       if impala_servers.nil? and hivethrift_servers.nil? 
@@ -15,24 +16,13 @@ module Impaler
       end
 
       if !impala_servers.nil?
-        if impala_servers.respond_to?(:choice)
-          @impala_servers=impala_servers
-        else 
-          @impala_servers=[impala_servers]
-        end
-
-        impala_server = @impala_servers.choice.split(":")
+        impala_server = choose(impala_servers).split(":")
         @impala_host = impala_server[0]
         @impala_port = impala_server[1]
       end
 
       if !hivethrift_servers.nil?
-        if hivethrift_servers.respond_to?(:choice)
-          @hivethrift_servers=hivethrift_servers
-        else
-          @hivethrift_servers=[hivethrift_servers]
-        end
-        hivethrift_server = @hivethrift_servers.choice.split(":")
+        hivethrift_server = choose(hivethrift_servers).split(":")
         @hivethrift_host = hivethrift_server[0]
         @hivethrift_port = hivethrift_server[1]
       end
@@ -156,6 +146,19 @@ module Impaler
       query(q).collect { |table|
         table[:name] || table[:tab_name]
       }
+    end
+
+    # Hack for supporting both ruby 1.8.7 and 1.9.X
+    def choose(choose_from)
+      ret = nil
+      if choose_from.respond_to?(:choice)
+        ret = choose_from.choice
+      elsif choose_from.respond_to?(:sample)
+        ret = choose_from.sample
+      else
+        ret = choose_from
+      end
+      ret
     end
 
   end
